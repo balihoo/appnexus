@@ -1,0 +1,22 @@
+{
+    "blambda": "manifest", 
+    "dependencies": {
+        "python-memcached": "1.58"
+    }, 
+    "options": {
+        "Description": "token_refresh", 
+        "Runtime": "python2.7", 
+        "Timeout": 300
+    }, 
+    "permissions": [
+    ], 
+    "schedule": {
+        "input": {},
+        "rate": "1 hour"
+    },
+    "source files": [
+        "token_refresh.py"
+    ],
+    "vpc": true
+}
+

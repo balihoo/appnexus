@@ -1,53 +1,75 @@
 import requests
 from requests.compat import urljoin, quote_plus
-import config
+import memcache
 import contextlib
 from time import time
-from pprint import pprint
 import json
+import logging
+
+import config
+
+class AuthException(Exception):
+    pass
 
 class AppNexusClient(object):
-    AUTH_TIMEOUT_SEC = 3600 #times out every 2h or 7200 sec. We reauth every hour
+    AUTH_TIMEOUT_SEC = 7200 #times out every 2h (7200 sec)
     TEST_URI = "http://api-test.appnexus.com"
     PROD_URI = "http://api.appnexus.com"
-    def __init__(self):
-        self._token = None
-        self._token_ts = 0
+    CONTENT_HDR = {'Content-type': 'application/json; charset=UTF-8'}
+
+    def __init__(self, token=None, refresh_from_memcache=False):
+        self._token = token
+        self._token_ts = time() if token else 0
         self.uri = self.PROD_URI if config.env == "prod" else self.TEST_URI
+        self.refresh_from_memcache = refresh_from_memcache
+        if refresh_from_memcache:
+            self.mcache = memcache.Client([config.memcache_host, config.memcache_port])
 
     def token(self):
-        if time() - self._token_ts > self.AUTH_TIMEOUT_SEC:
+        #preemtively reauth at 80% of expiration time
+        if time() - self._token_ts > (0.8 * self.AUTH_TIMEOUT_SEC):
+            logging.info("re-auth due to time")
             self._refresh_token()
         return self._token
 
     def apiuri(self, term):
         return urljoin(self.uri, quote_plus(term))
 
-    def _refresh_token(self):
-        data = json.dumps({'auth': {'username':config.username, 'password':config.password}})
-        headers = {'Content-type': 'application/json; charset=UTF-8'}
-        uri = self.apiuri('auth')
-        res = requests.post(uri, data=data, headers=headers).json()
-        if res.get('status') == "OK":
-            self.token == res['token']
-            self._token_ts = time()
-        else:
-            raise Exception("Unable to refresh token: {}".format(json.dumps(res, indent=4)))
+    def apihdr(self, hdr=None):
+        headers = hdr or {}
+        headers.update(self.CONTENT_HDR)
+        headers.update({'Authorization': self.token()})
+        return headers
 
-    def _get(self, what, headers=None):
-        uri = "{}/{}".format(self.uri, what)
-        headers = headers or {}
-        #headers.update({'Authorization': self.token()})
-        print("getting {}".format(uri))
-        res = requests.get(uri, headers=headers).json()['response']
-        #if res.get('error_id') == "NOAUTH":
-        #    self._refresh_token()
-        #    headers.update({'Authorization': self.token()})
-        #    res = requests.get(uri, headers=headers).json()['response']
-        pprint(res)
+    def _refresh_token(self):
+        if self.refresh_from_memcache:
+            key="appnexus{}".format(config.env),
+            token = memcache.get(key)
+            if not token:
+                raise AuthException("Unable to get token from cache with {}".format(key))
+            self.token = token
+        else:
+            data = json.dumps({'auth': {'username':config.username, 'password':config.password}})
+            uri = self.apiuri('auth')
+            res = requests.post(uri, data=data, headers=self.CONTENT_HDR).json()['response']
+            if res.get('status') == "OK":
+                self._token = res['token']
+                self._token_ts = time()
+                logging.info("new token: [{}] @ {}".format(self._token, self._token_ts))
+            else:
+                raise AuthException("Unable to refresh token: {}".format(json.dumps(res, indent=4)))
+
+    def _ensure_auth(self, reqf):
+        res = reqf()
+        if res.get('error_id') == "NOAUTH":
+            logging.info("re-auth due to noauth")
+            self._refresh_token()
+            res = reqf()
         return res
 
-if __name__ == "__main__":
-   client = AppNexusClient()
-   print(client.token())
-   client._get('members')
+    def _get(self, what, headers=None):
+        uri = self.apiuri(what)
+        headers = self.apihdr(headers)
+        reqf = lambda: requests.get(uri, headers=headers).json()['response']
+        return self._ensure_auth(reqf)
+
