@@ -1,15 +1,15 @@
 import logging
 import argparse
 import json
-from appnexusclient import AppNexusClient
+from appnexusclient import AppNexusResource
 
 logging.basicConfig(level=logging.INFO)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("package and deploy lambda functions")
-    parser.add_argument('--token', type=str, help='auth token to use')
+    parser.add_argument('--id', type=str, help='the advertiser id to get')
     args = parser.parse_args()
 
-    client = AppNexusClient(token=args.token)
-    res = client._get('advertiser')
-    print(json.dumps(res, indent=2))
+    appnexus = AppNexusResource()
+    for i, adv in enumerate(appnexus.advertisers()):
+        print("{}: {}".format(i, adv.data['name']))
