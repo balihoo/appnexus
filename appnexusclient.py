@@ -11,9 +11,30 @@ import config
 class AuthException(Exception):
     pass
 
+class ApiException(Exception):
+    pass
+
 class AppNexusResource(object):
     def __init__(self):
         self._client = AppNexusClient()
+
+    def _paginator(self, term, collection_name, cls):
+        res = self._client.get(term)
+        if res["status"] == "OK":
+            for item in res[collection_name]:
+                yield cls(client=self._client, data=item)
+            thusfar = res["start_element"] + res["num_elements"]
+            separator = '&' if '?' in term else '?'
+            while res["count"] > thusfar:
+                res = self._client.get('{}{}start_element={}'.format(term, separator, thusfar))
+                if res["status"] != "OK":
+                    return
+                for item in res[collection_name]:
+                    yield cls(client=self._client, data=item)
+                thusfar = res["start_element"] + res["num_elements"]
+
+    def advertisers(self):
+        return self._paginator('advertiser', 'advertisers', Advertiser)
 
     def advertiser_by_id(self, advertiser_id):
         a_id = quote_plus(advertiser_id)
@@ -21,30 +42,47 @@ class AppNexusResource(object):
         if res["status"] == "OK":
             return Advertiser(client=self._client, data=res["advertiser"])
 
-    def advertisers(self):
-        res = self._client.get('advertiser')
-        if res["status"] == "OK":
-            for adv in res["advertisers"]:
-                yield Advertiser(client=self._client, data=adv)
-            thusfar = res["start_element"] + res["num_elements"]
-            while res["count"] > thusfar:
-                res = self._client.get('advertiser?start_element={}'.format(thusfar))
-                if res["status"] != "OK":
-                    return
-                for adv in res["advertisers"]:
-                    yield Advertiser(client=self._client, data=adv)
-                thusfar = res["start_element"] + res["num_elements"]
+    def create_advertiser(self, name, **kwargs):
+        data = { 'name': name }
+        data.update(kwargs)
+        return Advertiser(self._client, data=data)
 
 class Advertiser(object):
     def __init__(self, client, data):
         self._client = client
         self.data = data
 
+    def save(self):
+        if self.data
+
+
 class AppNexusClient(object):
     AUTH_TIMEOUT_SEC = 7200 #times out every 2h (7200 sec)
     TEST_URI = "http://api-test.appnexus.com"
     PROD_URI = "http://api.appnexus.com"
     CONTENT_HDR = {'Content-type': 'application/json; charset=UTF-8'}
+
+    def __error_checked(reqf):
+        """ decorator to check for AUTH, HTTP or API error response. """
+        tried = False
+        def checked_reqf(self, *args, **kwargs):
+            r = reqf(self, *args, **kwargs)
+            res = r.json().get('response', {})
+            if res.get('status') == "OK":
+                return res
+            if res.get('error_id') == "NOAUTH":
+                if not tried:
+                    self._refresh_token()
+                    return checked_reqf()
+                logging.error("AUTH FAILED TWICE")
+            r.raise_for_error()
+            raise ApiException("{}: {} {} ({})".format(
+                res.get('error_id'),
+                res.get('error'),
+                res.get('error_description'),
+                r.url
+            ))
+        return checked_reqf
 
     def __init__(self):
         """ Basic low level wrapper for the app nexus REST API """
@@ -59,7 +97,7 @@ class AppNexusClient(object):
             if os.path.exists(self._token_file):
                 self._token_ts = os.path.getmtime(self._token_file)
                 with open(self._token_file) as f:
-                    self._token = f.read()
+                    self._token = f.read().strip()
         #check if we have a memcache stored token
         elif hasattr(config, 'memcache_host'):
             self.refresh_from_memcache = True
@@ -92,8 +130,8 @@ class AppNexusClient(object):
         used, there ought to be a separate process to populate it
         """
         if self.refresh_from_memcache:
-            key="appnexus{}".format(config.env),
-            token = memcache.get(key)
+            key="appnexus{}".format(config.env)
+            token = self.mcache.get(key)
             if not token:
                 raise AuthException("Unable to get token from cache with {}".format(key))
             self.token = token
@@ -111,45 +149,36 @@ class AppNexusClient(object):
             else:
                 raise AuthException("Unable to refresh token: {}".format(json.dumps(res, indent=4)))
 
-    def _ensure_auth(self, reqf):
-        """ attempt an api request and retry with a fresh token if auth fails """
-        res = reqf()
-        if res.get('error_id') == "NOAUTH":
-            logging.info("re-auth due to noauth")
-            self._refresh_token()
-            res = reqf()
-        return res
-
+    @__error_checked
     def get(self, what, headers=None):
         """ basic api get request """
         uri = self._apiuri(what)
-        headers = self._apihdr(headers)
+        hdrs = self._apihdr(headers)
         logging.info("GET {}".format(uri))
-        reqf = lambda: requests.get(uri, headers=headers).json()['response']
-        return self._ensure_auth(reqf)
+        return requests.get(uri, headers=hdrs)
 
+    @__error_checked
     def post(self, what, data, headers=None):
         """ basic api post request """
         uri = self._apiuri(what)
         headers = self._apihdr(headers)
         data = json.dumps(data)
         logging.info("POST {}: {}".format(uri, data))
-        reqf = lambda: requests.post(uri, data=data, headers=headers).json()['response']
-        return self._ensure_auth(reqf)
+        return requests.post(uri, data=data, headers=headers)
 
+    @__error_checked
     def put(self, what, data, headers=None):
         """ basic api put request """
         uri = self._apiuri(what)
         headers = self._apihdr(headers)
         data = json.dumps(data)
         logging.info("PUT {}: {}".format(uri, data))
-        reqf = lambda: requests.put(uri, data=data, headers=headers).json()['response']
-        return self._ensure_auth(reqf)
+        return requests.put(uri, data=data, headers=headers)
 
+    @__error_checked
     def delete(self, what, headers=None):
         """ basic api delete request """
         uri = self._apiuri(what)
         headers = self._apihdr(headers)
         logging.info("DELETE {}".format(uri))
-        reqf = lambda: requests.delete(uri, headers=headers).json()['response']
-        return self._ensure_auth(reqf)
+        return requests.delete(uri, headers=headers)
