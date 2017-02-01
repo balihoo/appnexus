@@ -8,10 +8,16 @@ import os
 
 import config
 
+class DataException(Exception):
+    pass
+
 class AuthException(Exception):
     pass
 
 class ApiException(Exception):
+    pass
+
+class NotFoundException(Exception):
     pass
 
 class AppNexusResource(object):
@@ -19,6 +25,7 @@ class AppNexusResource(object):
         self._client = AppNexusClient()
 
     def _paginator(self, term, collection_name, cls):
+        """ returns a generator that fetches elements as needed """
         res = self._client.get(term)
         if res["status"] == "OK":
             for item in res[collection_name]:
@@ -33,19 +40,35 @@ class AppNexusResource(object):
                     yield cls(client=self._client, data=item)
                 thusfar = res["start_element"] + res["num_elements"]
 
-    def advertisers(self):
-        return self._paginator('advertiser', 'advertisers', Advertiser)
-
-    def advertiser_by_id(self, advertiser_id):
-        a_id = quote_plus(advertiser_id)
-        res = self._client.get('advertiser?id={}'.format(a_id))
-        if res["status"] == "OK":
-            return Advertiser(client=self._client, data=res["advertiser"])
-
     def create_advertiser(self, name, **kwargs):
+        """ create a new advertiser """
         data = { 'name': name }
         data.update(kwargs)
         return Advertiser(self._client, data=data)
+
+    def advertisers(self):
+        """ return all advertisers """
+        return self._paginator('advertiser', 'advertisers', Advertiser)
+
+    def advertisers_by_ids(self, advertiser_ids):
+        """ return multiple advertisers by id """
+        term = 'advertiser?id={}'.format(','.join(advertiser_ids))
+        return self._paginator(term, 'advertisers', Advertiser)
+
+    def advertiser_by_id(self, advertiser_id):
+        """ return a specific advertiser """
+        a_id = quote_plus(str(advertiser_id))
+        try:
+            res = self._client.get('advertiser?id={}'.format(a_id))
+            return Advertiser(client=self._client, data=res["advertiser"])
+        except NotFoundException:
+            return None
+
+    def advertiser_by_name(self, name):
+        """ return the first advertiser with this exact name"""
+        term = 'advertiser?name={}'.format(quote_plus(name))
+        it = self._paginator(term, 'advertisers', Advertiser)
+        return next(it, None)
 
 class Advertiser(object):
     def __init__(self, client, data):
@@ -53,7 +76,21 @@ class Advertiser(object):
         self.data = data
 
     def save(self):
-        if self.data
+        """ creates or updates the advertiser remotely """
+        if self.data.get('id') is None:
+            #new
+            return self._client.post('advertiser', self.data)
+        else:
+            #update
+            return self._client.put('advertiser?id={}'.format(self.data['id']), self.data)
+
+    def delete(self):
+        """ deletes the advertiser remotely.
+        Saving it after this will recreate it with a new id
+        """
+        if not self.data.get('id') is None:
+            return self._client.delete('advertiser?id={}'.format(self.data['id']), self.data)
+        raise DataException("unable to delete advertiser without an id")
 
 
 class AppNexusClient(object):
@@ -61,28 +98,6 @@ class AppNexusClient(object):
     TEST_URI = "http://api-test.appnexus.com"
     PROD_URI = "http://api.appnexus.com"
     CONTENT_HDR = {'Content-type': 'application/json; charset=UTF-8'}
-
-    def __error_checked(reqf):
-        """ decorator to check for AUTH, HTTP or API error response. """
-        tried = False
-        def checked_reqf(self, *args, **kwargs):
-            r = reqf(self, *args, **kwargs)
-            res = r.json().get('response', {})
-            if res.get('status') == "OK":
-                return res
-            if res.get('error_id') == "NOAUTH":
-                if not tried:
-                    self._refresh_token()
-                    return checked_reqf()
-                logging.error("AUTH FAILED TWICE")
-            r.raise_for_error()
-            raise ApiException("{}: {} {} ({})".format(
-                res.get('error_id'),
-                res.get('error'),
-                res.get('error_description'),
-                r.url
-            ))
-        return checked_reqf
 
     def __init__(self):
         """ Basic low level wrapper for the app nexus REST API """
@@ -103,6 +118,28 @@ class AppNexusClient(object):
             self.refresh_from_memcache = True
             import memcache
             self.mcache = memcache.Client([config.memcache_host, config.memcache_port])
+
+    def __error_checked(reqf):
+        """ decorator to check for AUTH, HTTP or API error response. """
+        tried = False
+        def checked_reqf(self, *args, **kwargs):
+            r = reqf(self, *args, **kwargs)
+            res = r.json().get('response', {})
+            if res.get('status') == "OK":
+                return res
+            if res.get('error_id') == "NOAUTH":
+                if not tried:
+                    self._refresh_token()
+                    return checked_reqf()
+                logging.error("AUTH FAILED TWICE")
+            r.raise_for_status()
+            errid = res.get('error_id')
+            error = res.get('error')
+            errdesc = res.get('error_description')
+            if errid == "SYNTAX" and error == "resource not found":
+                raise NotFoundException(r.url)
+            raise ApiException("{}: {} {} ({})".format(errid, error, errdesc, r.url))
+        return checked_reqf
 
     def token(self):
         """ get a valid auth token to use in api calls """
