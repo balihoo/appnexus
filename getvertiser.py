@@ -11,8 +11,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     appnexus = AppNexusResource()
-    #adv = appnexus.advertiser_by_name("Globalizer")
-    adv = appnexus.advertiser_by_id(1000000000056230)
+    adv = appnexus.advertiser_by_name("Balihoo API Test")
+    #adv = appnexus.create_advertiser("Balihoo API Test", state="inactive")
     print(json.dumps(adv.data, indent=4) if adv else "NOPE")
+    adv.data['code'] = 'Gerry'
+    adv.save()
+    adv = appnexus.advertiser_by_id(adv.data['id'])
+    print(json.dumps(adv.data, indent=4) if adv else "NOPE")
+
     #for i, adv in enumerate(appnexus.advertisers()):
     #    print("{}: {}".format(i, adv.data['name']))

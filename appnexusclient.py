@@ -77,12 +77,15 @@ class Advertiser(object):
 
     def save(self):
         """ creates or updates the advertiser remotely """
+        payload = { 'advertiser': self.data }
         if self.data.get('id') is None:
             #new
-            return self._client.post('advertiser', self.data)
+            res = self._client.post('advertiser', payload)
+            self.data['id'] = res['id']
         else:
             #update
-            return self._client.put('advertiser?id={}'.format(self.data['id']), self.data)
+            self._client.put('advertiser?id={}'.format(self.data['id']), payload)
+        return True
 
     def delete(self):
         """ deletes the advertiser remotely.
