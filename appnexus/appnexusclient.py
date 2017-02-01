@@ -6,8 +6,6 @@ import json
 import logging
 import os
 
-import config
-
 class DataException(Exception):
     pass
 
@@ -21,8 +19,8 @@ class NotFoundException(Exception):
     pass
 
 class AppNexusResource(object):
-    def __init__(self):
-        self._client = AppNexusClient()
+    def __init__(self, config):
+        self._client = AppNexusClient(config)
 
     def _paginator(self, term, collection_name, cls):
         """ returns a generator that fetches elements as needed """
@@ -107,23 +105,25 @@ class AppNexusClient(object):
 
     def __init__(self):
         """ Basic low level wrapper for the app nexus REST API """
-        self.uri = self.PROD_URI if config.env == "prod" else self.TEST_URI
+        self._config = config
+        self.env = self._config.get('env')
+        self.uri = self.PROD_URI if self.env  == "prod" else self.TEST_URI
         self._token = None
         self._token_ts = 0
-        self._token_file = None
         self.refresh_from_memcache = False
+        self._token_file = self._config.get('token_file')
+        self._memcache_host = self._config.get('memcache_host')
+        self._memcache_port = self._config.get('memcache_port')
         #check if we have a filesystem stored token
-        if hasattr(config, 'token_file'):
-            self._token_file = config.token_file
-            if os.path.exists(self._token_file):
-                self._token_ts = os.path.getmtime(self._token_file)
-                with open(self._token_file) as f:
-                    self._token = f.read().strip()
+        if self._token_file and os.path.exists(self._token_file):
+            self._token_ts = os.path.getmtime(self._token_file)
+            with open(self._token_file) as f:
+                self._token = f.read().strip()
         #check if we have a memcache stored token
-        elif hasattr(config, 'memcache_host'):
+        elif self._memcache_host and self._memcache_port:
             self.refresh_from_memcache = True
             import memcache
-            self.mcache = memcache.Client([config.memcache_host, config.memcache_port])
+            self.mcache = memcache.Client([self._memcache_host, self._memcache_port])
 
     def __error_checked(reqf):
         """ decorator to check for AUTH, HTTP or API error response. """
@@ -173,13 +173,17 @@ class AppNexusClient(object):
         used, there ought to be a separate process to populate it
         """
         if self.refresh_from_memcache:
-            key="appnexus{}".format(config.env)
+            key="appnexus{}".format(self.env)
             token = self.mcache.get(key)
             if not token:
                 raise AuthException("Unable to get token from cache with {}".format(key))
             self.token = token
         else:
-            data = json.dumps({'auth': {'username':config.username, 'password':config.password}})
+            u = self._config.get('username')
+            p = self._config.get('password')
+            if not u and p:
+                raise AuthException("username and/or password not set in config")
+            data = json.dumps({'auth': { 'username': u, 'password': p }})
             uri = self._apiuri('auth')
             res = requests.post(uri, data=data, headers=self.CONTENT_HDR).json()['response']
             if res.get('status') == "OK":
