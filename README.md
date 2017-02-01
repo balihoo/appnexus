@@ -1,10 +1,17 @@
 # Balihoo AppNexus API SDK
 The Balihoo AppNExus API SDK provides an easy pythonic interface to interact with the App Nexus API
 
+## Installation
+The Balihoo AppNExus API SDK is a pip installable package, from git, not (yet) from PyPi: 
+```
+pip install git+git://github.com/balihoo/appnexus.git
+```
+
 ## Resource
 To start using the API using the SDK, first create an AppNexus Resouce:
 ```
-    appnexus = AppNexusResource(config)
+    from appnexus.resource import AppNexusResource
+    resource = AppNexusResource(config)
 ```
 The parameter `config` is a dictionary with configuration options:
 ```
@@ -27,7 +34,7 @@ To manage advertisers, the SDK uses Advertiser objects containing all advertiser
 
 ### Creating an Advertiser
 ```
-adv = appnexus.create_advertiser("Balihoo API Test", state="inactive")
+adv = resource.create_advertiser("Balihoo API Test", state="inactive")
 print(json.dumps(adv.data, indent=4))
 adv.data['code'] = 'SomeCode'
 advid = adv.save()
@@ -37,7 +44,7 @@ The `save` call stores the object remotely
 
 ### Fetching and updating an advertiser
 ```
-adv = appnexus.advertiser_by_id(adv.data['id'])
+adv = resource.advertiser_by_id(adv.data['id'])
 if adv not is None:
     adv.data['code'] = 'MyCode'
     advid = adv.save()
@@ -45,7 +52,7 @@ if adv not is None:
 
 ### Deleting an advertiser
 ```
-adv = appnexus.advertiser_by_id(adv.data['id'])
+adv = resource.advertiser_by_id(adv.data['id'])
 if adv not is None:
     adv.delete()
 ``` 
