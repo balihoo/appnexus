@@ -1,101 +1,17 @@
 import requests
-from requests.compat import urljoin, quote_plus
+from requests.compat import urljoin
 import contextlib
+import logging
 from time import time
 import json
-import logging
 import os
 
-class DataException(Exception):
-    pass
-
-class AuthException(Exception):
-    pass
-
-class ApiException(Exception):
-    pass
-
-class NotFoundException(Exception):
-    pass
-
-class AppNexusResource(object):
-    def __init__(self, config):
-        self._client = AppNexusClient(config)
-
-    def _paginator(self, term, collection_name, cls):
-        """ returns a generator that fetches elements as needed """
-        res = self._client.get(term)
-        if res["status"] == "OK":
-            for item in res[collection_name]:
-                yield cls(client=self._client, data=item)
-            thusfar = res["start_element"] + res["num_elements"]
-            separator = '&' if '?' in term else '?'
-            while res["count"] > thusfar:
-                res = self._client.get('{}{}start_element={}'.format(term, separator, thusfar))
-                if res["status"] != "OK":
-                    return
-                for item in res[collection_name]:
-                    yield cls(client=self._client, data=item)
-                thusfar = res["start_element"] + res["num_elements"]
-
-    def create_advertiser(self, name, **kwargs):
-        """ create a new advertiser """
-        data = { 'name': name }
-        data.update(kwargs)
-        return Advertiser(self._client, data=data)
-
-    def advertisers(self):
-        """ return all advertisers """
-        return self._paginator('advertiser', 'advertisers', Advertiser)
-
-    def advertisers_by_ids(self, advertiser_ids):
-        """ return multiple advertisers by id """
-        term = 'advertiser?id={}'.format(','.join(advertiser_ids))
-        return self._paginator(term, 'advertisers', Advertiser)
-
-    def advertiser_by_id(self, advertiser_id):
-        """ return a specific advertiser """
-        a_id = quote_plus(str(advertiser_id))
-        try:
-            res = self._client.get('advertiser?id={}'.format(a_id))
-            return Advertiser(client=self._client, data=res["advertiser"])
-        except NotFoundException:
-            return None
-
-    def advertiser_by_name(self, name):
-        """ return the first advertiser with this exact name"""
-        term = 'advertiser?name={}'.format(quote_plus(name))
-        it = self._paginator(term, 'advertisers', Advertiser)
-        return next(it, None)
-
-class Advertiser(object):
-    def __init__(self, client, data):
-        self._client = client
-        self.data = data
-
-    def save(self):
-        """ creates or updates the advertiser remotely """
-        payload = { 'advertiser': self.data }
-        if self.data.get('id') is None:
-            #new
-            res = self._client.post('advertiser', payload)
-            self.data['id'] = res['id']
-        else:
-            #update
-            self._client.put('advertiser?id={}'.format(self.data['id']), payload)
-        return True
-
-    def delete(self):
-        """ deletes the advertiser remotely.
-        Saving it after this will recreate it with a new id
-        """
-        if not self.data.get('id') is None:
-            res = self._client.delete('advertiser?id={}'.format(self.data['id']))
-            print(json.dumps(res, indent=4))
-            self.data['id'] = None
-        else:
-            raise DataException("unable to delete advertiser without an id")
-
+from .exceptions import (
+    DataException,
+    AuthException,
+    ApiException,
+    NotFoundException
+)
 
 class AppNexusClient(object):
     AUTH_TIMEOUT_SEC = 7200 #times out every 2h (7200 sec)

@@ -1,7 +1,7 @@
 import logging
 import argparse
 import json
-from appnexus.appnexusclient import AppNexusResource
+from appnexus.resource import AppNexusResource
 
 from config import config
 logging.basicConfig(level=logging.INFO)
@@ -14,10 +14,11 @@ if __name__ == "__main__":
     appnexus = AppNexusResource(config)
     #adv = appnexus.advertiser_by_name("Balihoo API Test")
     adv = appnexus.create_advertiser("Balihoo API Test", state="inactive")
-    print(json.dumps(adv.data, indent=4) if adv else "NOPE")
+    #print(json.dumps(adv.data, indent=4) if adv else "NOPE")
     adv.data['code'] = 'Gerry'
     adv.save()
     adv = appnexus.advertiser_by_id(adv.data['id'])
+    #adv = appnexus.advertiser_by_name("Balihoo API Test")
     if adv.data['code'] == 'Gerry':
         print('code match')
     advid = adv.data['id']
