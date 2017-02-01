@@ -3,6 +3,7 @@ import argparse
 import json
 from appnexusclient import AppNexusResource
 
+from config import config
 logging.basicConfig(level=logging.INFO)
 
 if __name__ == "__main__":
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument('--id', type=str, help='the advertiser id to get')
     args = parser.parse_args()
 
-    appnexus = AppNexusResource()
+    appnexus = AppNexusResource(config)
     #adv = appnexus.advertiser_by_name("Balihoo API Test")
     adv = appnexus.create_advertiser("Balihoo API Test", state="inactive")
     print(json.dumps(adv.data, indent=4) if adv else "NOPE")
