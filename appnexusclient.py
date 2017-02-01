@@ -92,8 +92,11 @@ class Advertiser(object):
         Saving it after this will recreate it with a new id
         """
         if not self.data.get('id') is None:
-            return self._client.delete('advertiser?id={}'.format(self.data['id']), self.data)
-        raise DataException("unable to delete advertiser without an id")
+            res = self._client.delete('advertiser?id={}'.format(self.data['id']))
+            print(json.dumps(res, indent=4))
+            self.data['id'] = None
+        else:
+            raise DataException("unable to delete advertiser without an id")
 
 
 class AppNexusClient(object):
