@@ -1,7 +1,7 @@
 import logging
 import argparse
 import json
-from appnexusclient import AppNexusResource
+from appnexus.appnexusclient import AppNexusResource
 
 from config import config
 logging.basicConfig(level=logging.INFO)

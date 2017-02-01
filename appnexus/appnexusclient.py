@@ -103,7 +103,7 @@ class AppNexusClient(object):
     PROD_URI = "http://api.appnexus.com"
     CONTENT_HDR = {'Content-type': 'application/json; charset=UTF-8'}
 
-    def __init__(self):
+    def __init__(self, config):
         """ Basic low level wrapper for the app nexus REST API """
         self._config = config
         self.env = self._config.get('env')
