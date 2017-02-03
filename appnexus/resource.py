@@ -17,8 +17,6 @@ class AppNexusResource(object):
             separator = '&' if '?' in term else '?'
             while res["count"] > thusfar:
                 res = self._client.get('{}{}start_element={}'.format(term, separator, thusfar))
-                if res["status"] != "OK":
-                    return
                 for item in res[collection_name]:
                     yield cls(client=self._client, data=item)
                 thusfar = res["start_element"] + res["num_elements"]

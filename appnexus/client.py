@@ -116,9 +116,9 @@ class AppNexusClient(object):
     def get(self, what, headers=None):
         """ basic api get request """
         uri = self._apiuri(what)
-        hdrs = self._apihdr(headers)
+        headers = self._apihdr(headers)
         logging.info("GET {}".format(uri))
-        return requests.get(uri, headers=hdrs)
+        return requests.get(uri, headers=headers)
 
     @__error_checked
     def post(self, what, data, headers=None):
