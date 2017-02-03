@@ -45,6 +45,15 @@ class AppNexusResource(object):
         except NotFoundException:
             return None
 
+    def advertiser_by_code(self, advertiser_code):
+        """ return a specific advertiser """
+        code = quote_plus(str(advertiser_code))
+        try:
+            res = self._client.get('advertiser?code={}'.format(code))
+            return Advertiser(client=self._client, data=res["advertiser"])
+        except NotFoundException:
+            return None
+
     def advertiser_by_name(self, name):
         """ return the first advertiser with this exact name"""
         term = 'advertiser?name={}'.format(quote_plus(name))

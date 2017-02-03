@@ -10,10 +10,11 @@ class Advertiser(object):
         if self.data.get('id') is None:
             #new
             res = self._client.post('advertiser', payload)
-            self.data['id'] = res['id']
+            self.data.update(res['advertiser'])
         else:
             #update
-            self._client.put('advertiser?id={}'.format(self.data['id']), payload)
+            res = self._client.put('advertiser?id={}'.format(self.data['id']), payload)
+            self.data.update(res['advertiser'])
         return True
 
     def delete(self):
@@ -22,7 +23,6 @@ class Advertiser(object):
         """
         if not self.data.get('id') is None:
             res = self._client.delete('advertiser?id={}'.format(self.data['id']))
-            print(json.dumps(res, indent=4))
             self.data['id'] = None
         else:
             raise DataException("unable to delete advertiser without an id")
