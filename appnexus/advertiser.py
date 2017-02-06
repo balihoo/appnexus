@@ -4,6 +4,18 @@ class Advertiser(object):
         self._client = client
         self.data = data
 
+    @property
+    def id(self):
+        return self.data.get('id')
+
+    @property
+    def code(self):
+        return self.data.get('code')
+
+    @property
+    def name(self):
+        return self.data.get('name')
+
     def save(self):
         """ creates or updates the advertiser remotely """
         payload = { 'advertiser': self.data }
