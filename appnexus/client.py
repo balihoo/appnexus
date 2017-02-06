@@ -37,6 +37,7 @@ class AppNexusClient(object):
                 self._token = f.read().strip()
         #check if we have a memcache stored token
         elif self._memcache_host and self._memcache_port:
+            logging.info("auth from memcache")
             self.refresh_from_memcache = True
             import memcache
             self.mcache = memcache.Client([self._memcache_host, self._memcache_port])
@@ -51,6 +52,7 @@ class AppNexusClient(object):
                 return res
             if res.get('error_id') == "NOAUTH":
                 if not tried:
+                    logging.info("re-auth due to noauth response")
                     self._refresh_token()
                     return checked_reqf(self, *args, **kwargs)
                 logging.error("AUTH FAILED TWICE")
