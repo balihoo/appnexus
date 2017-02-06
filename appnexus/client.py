@@ -52,7 +52,7 @@ class AppNexusClient(object):
             if res.get('error_id') == "NOAUTH":
                 if not tried:
                     self._refresh_token()
-                    return checked_reqf()
+                    return checked_reqf(self, *args, **kwargs)
                 logging.error("AUTH FAILED TWICE")
             r.raise_for_status()
             errid = res.get('error_id')
