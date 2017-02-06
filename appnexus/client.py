@@ -95,7 +95,7 @@ class AppNexusClient(object):
             token = self.mcache.get(key)
             if not token:
                 raise AuthException("Unable to get token from cache with {}".format(key))
-            self.token = token
+            self._token = token
         else:
             u = self._config.get('username')
             p = self._config.get('password')
