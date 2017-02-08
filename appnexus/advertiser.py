@@ -1,42 +1,11 @@
-import json
-class Advertiser(object):
-    def __init__(self, client, data):
-        self._client = client
-        self.data = data
+from .service import Service
+from .insertion_order import InsertionOrder
+from .paginator import paginator
 
-    @property
-    def id(self):
-        return self.data.get('id')
+class Advertiser(Service):
+    service_name = 'advertiser'
+    collection_name = 'advertisers'
 
-    @property
-    def code(self):
-        return self.data.get('code')
-
-    @property
-    def name(self):
-        return self.data.get('name')
-
-    def save(self):
-        """ creates or updates the advertiser remotely """
-        payload = { 'advertiser': self.data }
-        if self.data.get('id') is None:
-            #new
-            res = self._client.post('advertiser', payload)
-            self.data.update(res['advertiser'])
-        else:
-            #update
-            res = self._client.put('advertiser?id={}'.format(self.data['id']), payload)
-            self.data.update(res['advertiser'])
-        return True
-
-    def delete(self):
-        """ deletes the advertiser remotely.
-        Saving it after this will recreate it with a new id
-        """
-        if not self.data.get('id') is None:
-            res = self._client.delete('advertiser?id={}'.format(self.data['id']))
-            self.data['id'] = None
-        else:
-            raise DataException("unable to delete advertiser without an id")
-
-
+    def insertion_orders(self):
+        term = '{}?advertiser_id={}'.format(InsertionOrder.service_name, self.id)
+        return paginator(term, InsertionOrder.collection_name, Advertiser)
