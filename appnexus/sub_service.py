@@ -17,8 +17,7 @@ class SubService(Service):
     def _for_this_service(self, term):
         """ add a filter for this service id to the uri term """
         separator = '&' if '?' in term else '?'
-        #return term + "{}{}_id={}&advertiser_id={}".format(separator, self.service_name, self.id, self.advertiser_id)
-        return term + "{}advertiser_id={}".format(separator, self.advertiser_id)
+        return term + "{}{}_id={}&advertiser_id={}".format(separator, self.service_name, self.id, self.advertiser_id)
 
     @property
     def advertiser_id(self):
