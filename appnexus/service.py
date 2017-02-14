@@ -27,15 +27,14 @@ class Service(object):
 
     def _by_ids(self, service, ids):
         """ return multiple items by id """
-        values = ','.join(quote_plus(str(i)) for i in ids)
-        term = '{}?id={}'.format(service.service_name, values)
-        term = self._for_this_service(term)
         if self.id and ids:
+            values = ','.join(quote_plus(str(i)) for i in ids)
+            term = '{}?id={}'.format(service.service_name, values)
+            term = self._for_this_service(term)
             if ',' in values:
                 return paginator(self._client, term, service.collection_name, service)
-            else:
-                res = self._client.get(term)
-                return [service(client=self._client, data=res[service.service_name])]
+            res = self._client.get(term)
+            return [service(client=self._client, data=res[service.service_name])]
         return []
         
     def _by_exact_key(self, service, key_name, key_value):
