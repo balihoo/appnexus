@@ -33,4 +33,8 @@ class Advertiser(Service):
         """ return an iterator for insertion_orders with these ids """
         return self._by_ids(InsertionOrder, insertion_order_ids)
 
-
+    def profile(self):
+        """ return the optionally attached profile """
+        profile_id = self.data.get('profile_id')
+        if not profile_id is None:
+            return self._by_exact_key(Profile, 'id', profile_id)

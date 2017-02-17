@@ -1,7 +1,7 @@
+from itertools import chain
 from .sub_service import SubService
 from .line_item import LineItem
 from .paginator import paginator
-from itertools import chain
 
 class InsertionOrder(SubService):
     service_name = 'insertion-order'
