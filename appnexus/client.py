@@ -59,7 +59,7 @@ class AppNexusClient(object):
             r.raise_for_status()
             errid = res.get('error_id')
             error = res.get('error')
-            errdesc = res.get('error_description')
+            errdesc = res.get('error_description') or ""
             if errid.upper() == "SYNTAX" and "NOT FOUND" in error.upper():
                 raise NotFoundException(r.url)
             raise ApiException("{}: {} {} ({})".format(errid, error, errdesc, r.url))
