@@ -15,8 +15,8 @@ from .exceptions import (
 
 class AppNexusClient(object):
     AUTH_TIMEOUT_SEC = 7200 #times out every 2h (7200 sec)
-    TEST_URI = "http://api-test.appnexus.com"
-    PROD_URI = "http://api.appnexus.com"
+    TEST_URI = "https://api-test.appnexus.com"
+    PROD_URI = "https://api.appnexus.com"
     CONTENT_HDR = {'Content-type': 'application/json; charset=UTF-8'}
 
     def __init__(self, config):
@@ -60,7 +60,7 @@ class AppNexusClient(object):
             errid = res.get('error_id')
             error = res.get('error')
             errdesc = res.get('error_description')
-            if errid == "SYNTAX" and error == "resource not found":
+            if errid.upper() == "SYNTAX" and "NOT FOUND" in error.upper():
                 raise NotFoundException(r.url)
             raise ApiException("{}: {} {} ({})".format(errid, error, errdesc, r.url))
         return checked_reqf
