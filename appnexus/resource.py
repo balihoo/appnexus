@@ -21,8 +21,11 @@ class AppNexusResource(object):
         if ',' in values:
             return paginator(self._client, term, service.collection_name, service)
         else:
-            res = self._client.get(term)
-            return [service(client=self._client, data=res[service.service_name])]
+            try:
+                res = self._client.get(term)
+                return [service(client=self._client, data=res[service.service_name])]
+            except NotFoundException:
+                return []
 
     def _by_exact_key(self, service, key_name, key_value):
         """ return a specific item by an exact key (generally code or id) """

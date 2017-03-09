@@ -9,7 +9,7 @@ def paginator(client, term, collection_name, cls):
         separator = '&' if '?' in term else '?'
         while res["count"] > thusfar:
             res = client.get('{}{}start_element={}'.format(term, separator, thusfar))
-            if not collection in res:
+            if not collection_name in res:
                 return
             for item in res[collection_name]:
                 yield cls(client=client, data=item)

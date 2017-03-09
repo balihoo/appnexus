@@ -41,6 +41,11 @@ class AppNexusClient(object):
             self.refresh_from_memcache = True
             import memcache
             self.mcache = memcache.Client([self._memcache_host, self._memcache_port])
+        #for easier dependency injection
+        self._get = requests.get
+        self._put = requests.put
+        self._post = requests.post
+        self._delete = requests.delete
 
     def __error_checked(reqf):
         """ decorator to check for AUTH, HTTP or API error response. """
@@ -103,7 +108,7 @@ class AppNexusClient(object):
                 raise AuthException("username and/or password not set in config")
             data = json.dumps({'auth': { 'username': u, 'password': p }})
             uri = self._apiuri('auth')
-            res = requests.post(uri, data=data, headers=self.CONTENT_HDR).json()['response']
+            res = self._post(uri, data=data, headers=self.CONTENT_HDR).json()['response']
             if res.get('status') == "OK":
                 self._token = res['token']
                 self._token_ts = time()
@@ -120,7 +125,7 @@ class AppNexusClient(object):
         uri = self._apiuri(what)
         headers = self._apihdr(headers)
         logging.info("GET {}".format(uri))
-        return requests.get(uri, headers=headers)
+        return self._get(uri, headers=headers)
 
     @__error_checked
     def post(self, what, data, headers=None):
@@ -129,7 +134,7 @@ class AppNexusClient(object):
         headers = self._apihdr(headers)
         data = json.dumps(data)
         logging.info("POST {}: {}".format(uri, data))
-        return requests.post(uri, data=data, headers=headers)
+        return self._post(uri, data=data, headers=headers)
 
     @__error_checked
     def put(self, what, data, headers=None):
@@ -138,7 +143,7 @@ class AppNexusClient(object):
         headers = self._apihdr(headers)
         data = json.dumps(data)
         logging.info("PUT {}: {}".format(uri, data))
-        return requests.put(uri, data=data, headers=headers)
+        return self._put(uri, data=data, headers=headers)
 
     @__error_checked
     def delete(self, what, headers=None):
@@ -146,4 +151,4 @@ class AppNexusClient(object):
         uri = self._apiuri(what)
         headers = self._apihdr(headers)
         logging.info("DELETE {}".format(uri))
-        return requests.delete(uri, headers=headers)
+        return self._delete(uri, headers=headers)
