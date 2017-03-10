@@ -8,7 +8,7 @@ class SubService(Service):
         if not self.service_name:
             raise NotImplemented("Service should be subclassed.")
         if 'advertiser_id' not in data:
-            raise DataException("Unable to create {} without advertiser_id")
+            raise DataException("Unable to create {} without advertiser_id".format(sekf.service_name))
 
         self._advertiser_id = data['advertiser_id']
         self._client = client
