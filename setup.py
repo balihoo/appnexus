@@ -20,7 +20,7 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
     keywords='appnexus api sdk',
-    packages=['appnexus'],
+    packages=find_packages(),
     install_requires=['requests', 'python-memcached'],
     extras_require={},
     package_data={ },
