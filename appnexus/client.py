@@ -52,7 +52,10 @@ class AppNexusClient(object):
         tried = False
         def checked_reqf(self, *args, **kwargs):
             r = reqf(self, *args, **kwargs)
-            res = r.json().get('response', {})
+            try:
+                res = r.json().get('response', {})
+            except ValueError as e:
+                raise DataException("Unable to parse response: {}".format(r))
             if res.get('status') == "OK":
                 return res
             if res.get('error_id') == "NOAUTH":
