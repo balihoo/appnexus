@@ -1,7 +1,7 @@
 from time import time
 
 from appnexus.client import AppNexusClient
-from requests import HttpError
+from requests.exceptions import HttpError
 
 class MockResponse(object):
     def __init__(self, data, code=200):
