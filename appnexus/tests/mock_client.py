@@ -12,6 +12,9 @@ class MockResponse(object):
         if self.code != 200:
             raise HttpError("code = {}".format(self.code))
 
+    def iter_content(self, chunk_size=1):
+        return (b for b in self._data)
+
     def json(self):
         if 'status' not in self._data:
             self._data['status'] = "OK"
