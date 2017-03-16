@@ -96,4 +96,3 @@ class AppNexusResource(object):
     def advertisers_by_ids(self, advertiser_ids):
         """ return an iterator for advertisers with these ids """
         return self._by_ids(Advertiser, advertiser_ids)
-

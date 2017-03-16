@@ -52,10 +52,7 @@ class AppNexusClient(object):
         tried = False
         def checked_reqf(self, *args, **kwargs):
             r = reqf(self, *args, **kwargs)
-            try:
-                res = r.json().get('response', {})
-            except ValueError as e:
-                raise DataException("Unable to parse response: {}".format(r))
+            res = r.json().get('response', {})
             if res.get('status') == "OK":
                 return res
             if res.get('error_id') == "NOAUTH":
@@ -121,6 +118,17 @@ class AppNexusClient(object):
                         f.write(self._token)
             else:
                 raise AuthException("Unable to refresh token: {}".format(json.dumps(res, indent=4)))
+
+    def data_get(self, what, headers=None):
+        """ basic api get request that returns binary data
+            Returns: an iterator for the data
+        """
+        uri = self._apiuri(what)
+        headers = self._apihdr(headers)
+        logging.info("GET {}".format(uri))
+        r = self._get(uri, headers=headers)
+        r.raise_for_status()
+        return r.iter_content(chunk_size=1024)
 
     @__error_checked
     def get(self, what, headers=None):

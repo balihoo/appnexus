@@ -66,4 +66,3 @@ class InsertionOrder(SubService):
         self.data.update(res[self.service_name])
         return True
 
-
