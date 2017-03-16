@@ -1,10 +1,16 @@
 from time import time
 
 from appnexus.client import AppNexusClient
+from requests import HttpError
 
 class MockResponse(object):
-    def __init__(self, data):
+    def __init__(self, data, code=200):
         self._data = data
+        self.code = code
+
+    def raise_for_status(self):
+        if self.code != 200:
+            raise HttpError("code = {}".format(self.code))
 
     def json(self):
         if 'status' not in self._data:
