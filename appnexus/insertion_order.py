@@ -26,6 +26,7 @@ class InsertionOrder(SubService):
     def line_items(self):
         """ return all line_items """
         line_item_refs = self.data.get('line_items') or []
+        print("refs: {}".format(line_item_refs))
         remote_line_items = self.line_items_by_ids(li['id'] for li in line_item_refs)
         return chain(remote_line_items, self._new_line_items())
 
