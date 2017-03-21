@@ -26,6 +26,10 @@ class LineItem(SubService):
         remote_campaigns = self._by_ids(Campaign, [c['id'] for c in campaign_refs])
         return chain(remote_campaigns, self._new_campaigns())
 
+    def campaign_by_code(self, code):
+        """ return the first campaign that matches the code """
+        return next((c for c in self.campaigns() if c.code == code), None)
+
     def create_campaign(self, name, **kwargs):
         """ create a new campaign """
         data = { 'name': name, 'advertiser_id': self.advertiser_id, 'line_item_id': self.id }
