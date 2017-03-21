@@ -28,7 +28,7 @@ class LineItem(SubService):
 
     def campaign_by_code(self, code):
         """ return the first campaign that matches the code """
-        return next((c for c in campaigns if c.code == code), None)
+        return next((c for c in self.campaigns() if c.code == code), None)
 
     def create_campaign(self, name, **kwargs):
         """ create a new campaign """
