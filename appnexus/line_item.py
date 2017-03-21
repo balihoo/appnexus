@@ -28,7 +28,7 @@ class LineItem(SubService):
 
     def create_campaign(self, name, **kwargs):
         """ create a new campaign """
-        data = { 'name': name, 'advertiser_id': self.advertiser_id }
+        data = { 'name': name, 'advertiser_id': self.advertiser_id, line_item_id=self.id }
         data.update(kwargs)
         campaign = Campaign(self._client, data=data)
         self._campaigns.append(campaign)
