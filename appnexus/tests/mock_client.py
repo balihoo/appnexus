@@ -53,7 +53,7 @@ class MockAppNexusClient(AppNexusClient):
         break apart components and return a mock requests response
         object
         """
-        def mock_response(uri, data=None, headers=None):
+        def mock_response(uri, data=None, headers=None, files=None):
             (service, params) = self._dissect_uri(uri)
             response_data = handler(method, service, params, data, headers)
             return MockResponse(response_data)

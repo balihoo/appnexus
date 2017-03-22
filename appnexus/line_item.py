@@ -30,6 +30,10 @@ class LineItem(SubService):
         """ return the first campaign that matches the code """
         return next((c for c in self.campaigns() if c.code == code), None)
 
+    def campaign_by_id(self, campaign_id):
+        """ return the first campaign that matches the campaign_id """
+        return next((c for c in self.campaigns() if c.id == campaign_id), None)
+
     def create_campaign(self, name, **kwargs):
         """ create a new campaign """
         data = { 'name': name, 'advertiser_id': self.advertiser_id, 'line_item_id': self.id }
