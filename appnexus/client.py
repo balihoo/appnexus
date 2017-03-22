@@ -119,14 +119,13 @@ class AppNexusClient(object):
             else:
                 raise AuthException("Unable to refresh token: {}".format(json.dumps(res, indent=4)))
 
+    @__error_checked
     def upload(self, where, data, name, headers=None):
         """ basic api post request that uploads binary data """
         uri = self._apiuri(where)
         headers = self._apihdr(headers)
         logging.info("POST {}".format(uri))
-        r = self._post(uri, headers=headers, files={'file:' (name, data)})
-        r.raise_for_status()
-        return r
+        return self._post(uri, headers=headers, files={'file:' (name, data)})
 
     def data_get(self, what, headers=None):
         """ basic api get request that returns binary data
