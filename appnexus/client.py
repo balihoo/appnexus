@@ -125,7 +125,7 @@ class AppNexusClient(object):
         uri = self._apiuri(where)
         headers = self._apihdr(headers)
         logging.info("POST {}".format(uri))
-        return self._post(uri, headers=headers, files={'file:' (name, data)})
+        return self._post(uri, headers=headers, files={'file': (name, data)})
 
     def data_get(self, what, headers=None):
         """ basic api get request that returns binary data
