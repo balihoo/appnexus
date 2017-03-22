@@ -96,3 +96,7 @@ class AppNexusResource(object):
     def advertisers_by_ids(self, advertiser_ids):
         """ return an iterator for advertisers with these ids """
         return self._by_ids(Advertiser, advertiser_ids)
+
+    def creative_upload(self, data, name, member_id):
+        """ upload a creative package to the creative upload service """
+        return self._client.upload("creative-upload?member_id={}".format(member_id), data, name)
