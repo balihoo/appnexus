@@ -21,6 +21,14 @@ class Campaign(SubService):
         remote_creatives = self._by_ids(CreativeHtml, [c['id'] for c in creative_refs])
         return chain(remote_creatives, self._new_creatives())
 
+    def creative_by_code(self, code):
+        """ return the first creativethat matches the code """
+        return next((c for c in self.creatives() if c.code == code), None)
+
+    def creative_by_id(self, creative_id):
+        """ return the first creative that matches the creative_id """
+        return next((c for c in self.creatives() if c.id == creative_id), None)
+
     def profile(self):
         """ return the optionally attached profile """
         profile_id = self.data.get('profile_id')
