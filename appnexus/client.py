@@ -123,9 +123,9 @@ class AppNexusClient(object):
     def upload(self, where, data, name, headers=None):
         """ basic api post request that uploads binary data """
         uri = self._apiuri(where)
-        headers = self._apihdr(headers)
+        headers = {'Authorization': self.token()}
         logging.info("POST {}".format(uri))
-        return self._post(uri, headers=headers, files={'file': (name, data)})
+        return self._post(uri, headers=headers, files={'file': (name, data)}, data={'type':'html'})
 
     def data_get(self, what, headers=None):
         """ basic api get request that returns binary data

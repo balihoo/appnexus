@@ -12,6 +12,9 @@ class MyMockClient(MockAppNexusClient):
             print("params: {}".format(params))
             print("data: {}".format(data))
             print("headers: {}".format(headers))
+        if method == 'POST':
+            print(service)
+            return { 'advertiser': { 'id': 1 }}
         return {
             'advertiser': { 'id': 1 },
             'insertion-order': { 'id': 1, 'advertiser_id': 1, 'name': 'imanio' },
@@ -28,7 +31,7 @@ def mock_resource():
     return res
 
 class TestCreative(TestCase):
-    def test_handler(self):
+    def test_lookup(self):
         res = mock_resource()
         adv = res.advertiser_by_id(1)
         io = adv.insertion_order_by_id(1)
@@ -42,3 +45,11 @@ class TestCreative(TestCase):
         crea.data['height'] = 1
         crea.save()
         self.assertEqual(crea.id, 1)
+
+    def test_new(self):
+        res = mock_resource()
+        adv = res.create_advertiser(name='adv')
+        io = adv.create_insertion_order(name='io')
+        li = io.create_line_item(name='li')
+        cp = li.campaign_by_id(name='cp')
+        crea = cp.create_creative(name='crea')

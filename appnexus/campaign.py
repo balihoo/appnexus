@@ -22,7 +22,7 @@ class Campaign(SubService):
         return chain(remote_creatives, self._new_creatives())
 
     def creative_by_code(self, code):
-        """ return the first creativethat matches the code """
+        """ return the first creative that matches the code """
         return next((c for c in self.creatives() if c.code == code), None)
 
     def creative_by_id(self, creative_id):
@@ -39,7 +39,7 @@ class Campaign(SubService):
         """ create a new creative """
         data = { 'name': name, 'advertiser_id': self.advertiser_id }
         data.update(kwargs)
-        creative = Creative(self._client, data=data)
+        creative = CreativeHtml(self._client, data=data)
         self._creatives.append(creative)
         return creative
 
