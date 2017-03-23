@@ -101,5 +101,5 @@ class AppNexusResource(object):
     def creative_upload(self, data, name, member_id):
         """ upload a creative package to the creative upload service """
         response = self._client.upload("creative-upload?member_id={}".format(member_id), data, name)
-        return response['media-asset']
+        return response['media-asset'][0]
 
