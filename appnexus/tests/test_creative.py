@@ -51,5 +51,5 @@ class TestCreative(TestCase):
         adv = res.create_advertiser(name='adv')
         io = adv.create_insertion_order(name='io')
         li = io.create_line_item(name='li')
-        cp = li.campaign_by_id(name='cp')
+        cp = li.create_campaign(name='cp')
         crea = cp.create_creative(name='crea')

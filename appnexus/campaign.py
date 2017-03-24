@@ -11,6 +11,7 @@ class Campaign(SubService):
         super(Campaign, self).__init__(*args, **kwargs)
         self._creatives = []
         self.profile = None
+        self.old_profiles = []
 
     def _new_creatives(self):
         return [c for c in self._creatives if c.id is None]
@@ -44,11 +45,12 @@ class Campaign(SubService):
         return creative
 
     def create_profile(self, name, **kwargs):
-        """ create a new profile """
+        """ create a new profile, sets this campaigns profile to it """
         data = { 'name': name, 'advertiser_id': self.advertiser_id }
         data.update(kwargs)
-        profile = Profile(self._client, data=data)
-        self.data['profile_id'] = profile.id
+        if self.profile:
+            self.old_profiles.append(self.profile)
+        self.profile = Profile(self._client, data=data)
         return profile
 
     def save(self):
@@ -64,6 +66,10 @@ class Campaign(SubService):
         if self.profile:
             self.profile.save()
             self.data['profile_id'] = self.profile.id
+        #remove replaced profile(s)
+        for p in self.old_profiles:
+            p.delete()
+        self.old_profiles = []
         super(Campaign, self).save()
 
     def delete(self):
@@ -72,5 +78,7 @@ class Campaign(SubService):
             c.delete()
         if self.profile:
             self.profile.delete()
-
+        for p in self.old_profiles:
+            p.delete()
+ 
 
