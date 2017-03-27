@@ -53,7 +53,7 @@ class Campaign(SubService):
         if self._profile:
             self.old_profiles.append(self._profile)
         self._profile = Profile(self._client, data=data)
-        return profile
+        return self._profile
 
     def save(self):
         existing_creatives = self.data.get('creatives', []) or []
