@@ -32,9 +32,11 @@ class Campaign(SubService):
 
     def profile(self):
         """ return the optionally attached profile """
-        profile_id = self.data.get('profile_id')
-        if not profile_id is None:
-            return self._by_exact_key(Profile, 'id', profile_id)
+        if self.profile is None:
+            profile_id = self.data.get('profile_id')
+            if not profile_id is None:
+                self.profile = self._by_exact_key(Profile, 'id', profile_id)
+        return self.profile
 
     def create_creative(self, name, **kwargs):
         """ create a new creative """
