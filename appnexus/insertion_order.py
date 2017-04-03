@@ -17,17 +17,14 @@ class InsertionOrder(SubService):
 
     def create_line_item(self, name, **kwargs):
         """ create a new line_item """
-        budget_ids = (budget['id'] for budget in self.data.get('budget_intervals', []))
-        parent_budget_refs = [ { 'parent_interval_id': budget_id } for budget_id in budget_ids]
         data = {
             'name': name,
             'advertiser_id': self.advertiser_id,
             'insertion_orders': [ { 'id': self.id }],
         }
-        if len(parent_budget_refs) > 0:
-            data['budget_intervals'] = parent_budget_refs
         data.update(kwargs)
         line_item = LineItem(self._client, data=data)
+        line_item.update_budgets(self.data.get('budget_intervals', []))
         self._line_items.append(line_item)
         return line_item
 

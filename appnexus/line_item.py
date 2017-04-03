@@ -14,6 +14,14 @@ class LineItem(SubService):
     def _new_campaigns(self):
         return [c for c in self._campaigns if c.id is None]
 
+    def update_budgets(self, io_budget_intervals):
+        """ replace budget intervals with references to parent.
+         This will clear any line items specific budgets
+        """
+        budget_ids = (budget['id'] for budget in io_budget_intervals)
+        parent_budget_refs = [ { 'parent_interval_id': budget_id } for budget_id in budget_ids]
+        self.data['budget_intervals'] = parent_budget_refs
+
     def profile(self):
         """ return the optionally attached profile """
         profile_id = self.data.get('profile_id')
