@@ -14,6 +14,19 @@ class InsertionOrder(SubService):
     def _new_line_items(self):
         return [li for li in self._line_items if li.id is None]
 
+    def budget_by_dates(self, start, end, tz):
+        """ get a budget matching the start and end date
+            dates in this format '2017-03-01 00:00:00'
+            returns a budget json structure if found
+            or None if not found
+        """
+        budgets = self.data.get('budget_intervals', [])
+        for budget in budgets:
+            if (budget['start_date'] == start and
+                budget['end_date'] == end and 
+                budget['timezone'] == tz 
+               ):
+                return budget
 
     def create_line_item(self, name, **kwargs):
         """ create a new line_item """

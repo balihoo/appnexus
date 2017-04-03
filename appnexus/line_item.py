@@ -14,6 +14,10 @@ class LineItem(SubService):
     def _new_campaigns(self):
         return [c for c in self._campaigns if c.id is None]
 
+    def budget_by_parent_id(self, budget_id):
+        budgets = self.data['budget_intervals']
+        return next((b for b in budgets if b['parent_interval_id'] == budget_id), None)
+        
     def update_budgets(self, io_budget_intervals):
         """ replace budget intervals with references to parent.
          This will clear any line items specific budgets
