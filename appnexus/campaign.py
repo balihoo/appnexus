@@ -10,7 +10,7 @@ class Campaign(SubService):
     def __init__(self,  *args, **kwargs):
         super(Campaign, self).__init__(*args, **kwargs)
         self._creatives = []
-        self.profile = None
+        self._profile = None
         self.old_profiles = []
 
     def _new_creatives(self):
@@ -32,9 +32,11 @@ class Campaign(SubService):
 
     def profile(self):
         """ return the optionally attached profile """
-        profile_id = self.data.get('profile_id')
-        if not profile_id is None:
-            return self._by_exact_key(Profile, 'id', profile_id)
+        if self._profile is None:
+            profile_id = self.data.get('profile_id')
+            if not profile_id is None:
+                self._profile = self._by_exact_key(Profile, 'id', profile_id)
+        return self._profile
 
     def create_creative(self, name, **kwargs):
         """ create a new creative """
@@ -48,10 +50,10 @@ class Campaign(SubService):
         """ create a new profile, sets this campaigns profile to it """
         data = { 'name': name, 'advertiser_id': self.advertiser_id }
         data.update(kwargs)
-        if self.profile:
-            self.old_profiles.append(self.profile)
-        self.profile = Profile(self._client, data=data)
-        return profile
+        if self._profile:
+            self.old_profiles.append(self._profile)
+        self._profile = Profile(self._client, data=data)
+        return self._profile
 
     def save(self):
         existing_creatives = self.data.get('creatives', []) or []
@@ -63,9 +65,9 @@ class Campaign(SubService):
                 "state", "weight", "width")}
             existing_creatives.append(cr_summary)
         self.data['creatives'] = existing_creatives
-        if self.profile:
-            self.profile.save()
-            self.data['profile_id'] = self.profile.id
+        if self._profile:
+            self._profile.save()
+            self.data['profile_id'] = self._profile.id
         #remove replaced profile(s)
         for p in self.old_profiles:
             p.delete()
@@ -76,8 +78,8 @@ class Campaign(SubService):
         super(Campaign, self).delete()
         for c in self.creatives():
             c.delete()
-        if self.profile:
-            self.profile.delete()
+        if self._profile:
+            self._profile.delete()
         for p in self.old_profiles:
             p.delete()
  
