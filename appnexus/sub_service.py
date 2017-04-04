@@ -6,9 +6,9 @@ class SubService(Service):
     The subclass should set _service_name to the name of the AppNexus API service """
     def __init__(self, client, data):
         if not self.service_name:
-            raise NotImplemented("Service should be subclassed.")
+            raise NotImplemented("SubService should be subclassed.")
         if 'advertiser_id' not in data:
-            raise DataException("Unable to create {} without advertiser_id".format(self.service_name))
+            raise DataException("Unable to initialize {} without advertiser_id".format(self.service_name))
 
         self._advertiser_id = data['advertiser_id']
         self._client = client
