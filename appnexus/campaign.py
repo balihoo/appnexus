@@ -22,9 +22,9 @@ class Campaign(SubService):
         remote_creatives = self._by_ids(CreativeHtml, [c['id'] for c in creative_refs])
         return chain(remote_creatives, self._new_creatives())
 
-    def creative_by_code(self, code):
+    def creative_by_code(self, creative_code):
         """ return the first creative that matches the code """
-        return next((c for c in self.creatives() if c.code == code), None)
+        return self._by_exact_key(CreativeHtml, 'code', creative_code)
 
     def creative_by_id(self, creative_id):
         """ return the first creative that matches the creative_id """
