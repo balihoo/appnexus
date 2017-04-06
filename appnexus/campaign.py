@@ -19,7 +19,11 @@ class Campaign(SubService):
     def creatives(self):
         """ return all creatives """
         creative_refs = self.data.get('creatives') or []
-        remote_creatives = self._by_ids(CreativeHtml, [c['id'] for c in creative_refs])
+        remote_creatives = self._by_ids(
+            CreativeHtml,
+            [c['id'] for c in creative_refs],
+            override_collection_name='creative-html'
+        )
         return chain(remote_creatives, self._new_creatives())
 
     def creative_by_code(self, creative_code):

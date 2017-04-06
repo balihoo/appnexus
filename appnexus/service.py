@@ -25,7 +25,7 @@ class Service(object):
             return paginator(self._client, term, service.collection_name, service)
         return []
 
-    def _by_ids(self, service, ids):
+    def _by_ids(self, service, ids, override_collection_name=None):
         """ return multiple items by id """
         if self.id:
             values = ','.join(quote_plus(str(i)) for i in ids)
@@ -33,7 +33,7 @@ class Service(object):
                 term = '{}?id={}'.format(service.service_name, values)
                 term = self._for_this_service(term)
                 if ',' in values:
-                    return paginator(self._client, term, service.collection_name, service)
+                    return paginator(self._client, term, override_collection_name or service.collection_name, service)
                 res = self._client.get(term)
                 return [service(client=self._client, data=res[service.service_name])]
         return []
