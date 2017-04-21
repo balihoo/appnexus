@@ -1,20 +1,19 @@
 import requests
 from requests.compat import urljoin
-import contextlib
 import logging
 from time import time
 import json
 import os
 
 from .exceptions import (
-    DataException,
     AuthException,
     ApiException,
     NotFoundException
 )
 
+
 class AppNexusClient(object):
-    AUTH_TIMEOUT_SEC = 7200 #times out every 2h (7200 sec)
+    AUTH_TIMEOUT_SEC = 7200  # times out every 2h (7200 sec)
     TEST_URI = "https://api-test.appnexus.com"
     PROD_URI = "https://api.appnexus.com"
     CONTENT_HDR = {'Content-type': 'application/json; charset=UTF-8'}
@@ -30,18 +29,18 @@ class AppNexusClient(object):
         self._token_file = self._config.get('token_file')
         self._memcache_host = self._config.get('memcache_host')
         self._memcache_port = self._config.get('memcache_port')
-        #check if we have a filesystem stored token
+        # check if we have a filesystem stored token
         if self._token_file and os.path.exists(self._token_file):
             self._token_ts = os.path.getmtime(self._token_file)
             with open(self._token_file) as f:
                 self._token = f.read().strip()
-        #check if we have a memcache stored token
+        # check if we have a memcache stored token
         elif self._memcache_host and self._memcache_port:
             logging.info("auth from memcache")
             self.refresh_from_memcache = True
             import memcache
             self.mcache = memcache.Client([self._memcache_host, self._memcache_port])
-        #for easier dependency injection
+        # for easier dependency injection
         self._get = requests.get
         self._put = requests.put
         self._post = requests.post
@@ -50,6 +49,7 @@ class AppNexusClient(object):
     def __error_checked(reqf):
         """ decorator to check for AUTH, HTTP or API error response. """
         tried = False
+
         def checked_reqf(self, *args, **kwargs):
             r = reqf(self, *args, **kwargs)
             res = r.json().get('response', {})
@@ -72,7 +72,7 @@ class AppNexusClient(object):
 
     def token(self):
         """ get a valid auth token to use in api calls """
-        #preemtively reauth at 80% of expiration time
+        # preemtively reauth at 80% of expiration time
         if time() - self._token_ts > (0.8 * self.AUTH_TIMEOUT_SEC):
             logging.info("re-auth due to time")
             self._refresh_token()
