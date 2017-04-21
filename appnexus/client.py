@@ -13,7 +13,6 @@ from .exceptions import (
 
 
 class AppNexusClient(object):
-    AUTH_TIMEOUT_SEC = 7200  # times out every 2h (7200 sec)
     TEST_URI = "https://api-test.appnexus.com"
     PROD_URI = "https://api.appnexus.com"
     CONTENT_HDR = {'Content-type': 'application/json; charset=UTF-8'}
@@ -24,14 +23,15 @@ class AppNexusClient(object):
         self.env = self._config.get('env')
         self.uri = self.PROD_URI if self.env == "prod" else self.TEST_URI
         self._token = None
-        self._token_ts = 0
+        self._token_last_fetched = 0  # seconds since epoch
+        self._auth_retried = False
         self.refresh_from_memcache = False
         self._token_file = self._config.get('token_file')
         self._memcache_host = self._config.get('memcache_host')
         self._memcache_port = self._config.get('memcache_port')
         # check if we have a filesystem stored token
         if self._token_file and os.path.exists(self._token_file):
-            self._token_ts = os.path.getmtime(self._token_file)
+            self._token_last_fetched = os.path.getmtime(self._token_file)
             with open(self._token_file) as f:
                 self._token = f.read().strip()
         # check if we have a memcache stored token
@@ -48,7 +48,7 @@ class AppNexusClient(object):
 
     def __error_checked(reqf):
         """ decorator to check for AUTH, HTTP or API error response. """
-        tried = False
+        reqf._auth_retried = False
 
         def checked_reqf(self, *args, **kwargs):
             r = reqf(self, *args, **kwargs)
@@ -56,9 +56,10 @@ class AppNexusClient(object):
             if res.get('status') == "OK":
                 return res
             if res.get('error_id') == "NOAUTH":
-                if not tried:
+                if not self.reauth_tried:
                     logging.info("re-auth due to noauth response")
                     self._refresh_token()
+                    self._auth_retried = True
                     return checked_reqf(self, *args, **kwargs)
                 logging.error("AUTH FAILED TWICE")
             r.raise_for_status()
@@ -72,8 +73,8 @@ class AppNexusClient(object):
 
     def token(self):
         """ get a valid auth token to use in api calls """
-        # preemtively reauth at 80% of expiration time
-        if time() - self._token_ts > (0.8 * self.AUTH_TIMEOUT_SEC):
+        # fetch the token if it's been more than 1 minute since the last fetch
+        if self._token_last_fetched < (time() - 60):
             logging.info("re-auth due to time")
             self._refresh_token()
         return self._token
@@ -99,7 +100,8 @@ class AppNexusClient(object):
             key = "appnexus{}".format(self.env)
             token = self.mcache.get(key)
             if not token:
-                raise AuthException("Unable to get token from cache with {}".format(key))
+                raise AuthException("Unable to get token from cache with key: {}".format(key))
+            self._token_last_fetched = time()
             self._token = token
         else:
             u = self._config.get('username')
@@ -111,13 +113,14 @@ class AppNexusClient(object):
             res = self._post(uri, data=data, headers=self.CONTENT_HDR).json()['response']
             if res.get('status') == "OK":
                 self._token = res['token']
-                self._token_ts = time()
-                logging.info("new token: [{}] @ {}".format(self._token, self._token_ts))
+                self._token_last_fetched = time()
+                logging.info("new token: [{}] @ {}".format(self._token, self._token_last_fetched))
                 if self._token_file:
                     with open(self._token_file, 'w') as f:
                         f.write(self._token)
             else:
                 raise AuthException("Unable to refresh token: {}".format(json.dumps(res, indent=4)))
+
 
     @__error_checked
     def upload(self, where, data, name, headers=None):
