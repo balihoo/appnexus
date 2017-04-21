@@ -22,7 +22,7 @@ class AppNexusClient(object):
         """ Basic low level wrapper for the app nexus REST API """
         self._config = config
         self.env = self._config.get('env')
-        self.uri = self.PROD_URI if self.env  == "prod" else self.TEST_URI
+        self.uri = self.PROD_URI if self.env == "prod" else self.TEST_URI
         self._token = None
         self._token_ts = 0
         self.refresh_from_memcache = False
@@ -96,7 +96,7 @@ class AppNexusClient(object):
         used, there ought to be a separate process to populate it
         """
         if self.refresh_from_memcache:
-            key="appnexus{}".format(self.env)
+            key = "appnexus{}".format(self.env)
             token = self.mcache.get(key)
             if not token:
                 raise AuthException("Unable to get token from cache with {}".format(key))
@@ -106,7 +106,7 @@ class AppNexusClient(object):
             p = self._config.get('password')
             if not u and p:
                 raise AuthException("username and/or password not set in config")
-            data = json.dumps({'auth': { 'username': u, 'password': p }})
+            data = json.dumps({'auth': {'username': u, 'password': p}})
             uri = self._apiuri('auth')
             res = self._post(uri, data=data, headers=self.CONTENT_HDR).json()['response']
             if res.get('status') == "OK":
@@ -123,9 +123,9 @@ class AppNexusClient(object):
     def upload(self, where, data, name, headers=None):
         """ basic api post request that uploads binary data """
         uri = self._apiuri(where)
-        headers = {'Authorization': self.token()}
+        headers['Authorization'] = self.token()
         logging.info("POST {}".format(uri))
-        return self._post(uri, headers=headers, files={'file': (name, data)}, data={'type':'html'})
+        return self._post(uri, headers=headers, files={'file': (name, data)}, data={'type': 'html'})
 
     def data_get(self, what, headers=None):
         """ basic api get request that returns binary data
