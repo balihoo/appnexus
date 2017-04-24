@@ -31,6 +31,7 @@ class AppNexusClient(object):
         self._memcache_port = self._config.get('memcache_port')
         # check if we have a filesystem stored token
         if self._token_file and os.path.exists(self._token_file):
+            logging.info("auth from file")
             self._token_last_fetched = os.path.getmtime(self._token_file)
             with open(self._token_file) as f:
                 self._token = f.read().strip()
@@ -39,7 +40,7 @@ class AppNexusClient(object):
             logging.info("auth from memcache")
             self.refresh_from_memcache = True
             import memcache
-            self.mcache = memcache.Client([self._memcache_host, self._memcache_port])
+            self.mcache = memcache.Client(["{}:{}".format(self._memcache_host, self._memcache_port)])
         # for easier dependency injection
         self._get = requests.get
         self._put = requests.put
