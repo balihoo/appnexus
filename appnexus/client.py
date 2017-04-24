@@ -1,20 +1,18 @@
 import requests
 from requests.compat import urljoin
-import contextlib
 import logging
 from time import time
 import json
 import os
 
 from .exceptions import (
-    DataException,
     AuthException,
     ApiException,
     NotFoundException
 )
 
+
 class AppNexusClient(object):
-    AUTH_TIMEOUT_SEC = 7200 #times out every 2h (7200 sec)
     TEST_URI = "https://api-test.appnexus.com"
     PROD_URI = "https://api.appnexus.com"
     CONTENT_HDR = {'Content-type': 'application/json; charset=UTF-8'}
@@ -23,25 +21,26 @@ class AppNexusClient(object):
         """ Basic low level wrapper for the app nexus REST API """
         self._config = config
         self.env = self._config.get('env')
-        self.uri = self.PROD_URI if self.env  == "prod" else self.TEST_URI
+        self.uri = self.PROD_URI if self.env == "prod" else self.TEST_URI
         self._token = None
-        self._token_ts = 0
+        self._token_last_fetched = 0  # seconds since epoch
+        self._auth_retried = False
         self.refresh_from_memcache = False
         self._token_file = self._config.get('token_file')
         self._memcache_host = self._config.get('memcache_host')
         self._memcache_port = self._config.get('memcache_port')
-        #check if we have a filesystem stored token
+        # check if we have a filesystem stored token
         if self._token_file and os.path.exists(self._token_file):
-            self._token_ts = os.path.getmtime(self._token_file)
+            self._token_last_fetched = os.path.getmtime(self._token_file)
             with open(self._token_file) as f:
                 self._token = f.read().strip()
-        #check if we have a memcache stored token
+        # check if we have a memcache stored token
         elif self._memcache_host and self._memcache_port:
             logging.info("auth from memcache")
             self.refresh_from_memcache = True
             import memcache
             self.mcache = memcache.Client([self._memcache_host, self._memcache_port])
-        #for easier dependency injection
+        # for easier dependency injection
         self._get = requests.get
         self._put = requests.put
         self._post = requests.post
@@ -49,16 +48,18 @@ class AppNexusClient(object):
 
     def __error_checked(reqf):
         """ decorator to check for AUTH, HTTP or API error response. """
-        tried = False
+        reqf._auth_retried = False
+
         def checked_reqf(self, *args, **kwargs):
             r = reqf(self, *args, **kwargs)
             res = r.json().get('response', {})
             if res.get('status') == "OK":
                 return res
             if res.get('error_id') == "NOAUTH":
-                if not tried:
+                if not self.reauth_tried:
                     logging.info("re-auth due to noauth response")
                     self._refresh_token()
+                    self._auth_retried = True
                     return checked_reqf(self, *args, **kwargs)
                 logging.error("AUTH FAILED TWICE")
             r.raise_for_status()
@@ -72,8 +73,8 @@ class AppNexusClient(object):
 
     def token(self):
         """ get a valid auth token to use in api calls """
-        #preemtively reauth at 80% of expiration time
-        if time() - self._token_ts > (0.8 * self.AUTH_TIMEOUT_SEC):
+        # fetch the token if it's been more than 1 minute since the last fetch
+        if self._token_last_fetched < (time() - 60):
             logging.info("re-auth due to time")
             self._refresh_token()
         return self._token
@@ -96,36 +97,38 @@ class AppNexusClient(object):
         used, there ought to be a separate process to populate it
         """
         if self.refresh_from_memcache:
-            key="appnexus{}".format(self.env)
+            key = "appnexus{}".format(self.env)
             token = self.mcache.get(key)
             if not token:
-                raise AuthException("Unable to get token from cache with {}".format(key))
+                raise AuthException("Unable to get token from cache with key: {}".format(key))
+            self._token_last_fetched = time()
             self._token = token
         else:
             u = self._config.get('username')
             p = self._config.get('password')
             if not u and p:
                 raise AuthException("username and/or password not set in config")
-            data = json.dumps({'auth': { 'username': u, 'password': p }})
+            data = json.dumps({'auth': {'username': u, 'password': p}})
             uri = self._apiuri('auth')
             res = self._post(uri, data=data, headers=self.CONTENT_HDR).json()['response']
             if res.get('status') == "OK":
                 self._token = res['token']
-                self._token_ts = time()
-                logging.info("new token: [{}] @ {}".format(self._token, self._token_ts))
+                self._token_last_fetched = time()
+                logging.info("new token: [{}] @ {}".format(self._token, self._token_last_fetched))
                 if self._token_file:
                     with open(self._token_file, 'w') as f:
                         f.write(self._token)
             else:
                 raise AuthException("Unable to refresh token: {}".format(json.dumps(res, indent=4)))
 
+
     @__error_checked
     def upload(self, where, data, name, headers=None):
         """ basic api post request that uploads binary data """
         uri = self._apiuri(where)
-        headers = {'Authorization': self.token()}
+        headers['Authorization'] = self.token()
         logging.info("POST {}".format(uri))
-        return self._post(uri, headers=headers, files={'file': (name, data)}, data={'type':'html'})
+        return self._post(uri, headers=headers, files={'file': (name, data)}, data={'type': 'html'})
 
     def data_get(self, what, headers=None):
         """ basic api get request that returns binary data
