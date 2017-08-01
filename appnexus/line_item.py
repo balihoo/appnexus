@@ -43,8 +43,8 @@ class LineItem(SubService):
         return next((c for c in self.campaigns() if c.code == code), None)
 
     def campaign_by_id(self, campaign_id):
-        """ return the first campaign that matches the campaign_id """
-        return next((c for c in self.campaigns() if c.id == campaign_id), None)
+        """ return the campaign with this id, or None if not found """
+        return self._by_exact_key(Campaign, 'id', campaign_id)
 
     def create_campaign(self, name, **kwargs):
         """ create a new campaign """
