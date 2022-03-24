@@ -4,7 +4,7 @@ The Balihoo AppNexus API SDK provides an easy pythonic interface to interact wit
 ## Installation
 The Balihoo AppNexus API SDK is a pip installable package, from git, not (yet) from PyPi: 
 ```python
-pip install git+git://github.com/balihoo/appnexus.git
+pip install git+https://github.com/balihoo/appnexus.git
 ```
 
 ## Resource
